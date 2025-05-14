@@ -28,31 +28,29 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-             script {
-                    def ip = params.APP_BRANCH == 'develop' ? DEV_IP :
-                            params.APP_BRANCH == 'qa'      ? QA_IP :
-                            params.APP_BRANCH == 'main'    ? PROD_IP : null
-                    if (ip == null) {
-                        error "Branch ${params.APP_BRANCH} no está configurada para despliegue."
+            stage('Deploy') {
+                steps {
+                    script {
+                        def ip = params.APP_BRANCH == 'develop' ? DEV_IP :
+                                params.APP_BRANCH == 'qa'      ? QA_IP :
+                                params.APP_BRANCH == 'main'    ? PROD_IP : null
+                        def pm2_name = "${params.APP_BRANCH}-health"
+
+                        if (ip == null) {
+                            error "Branch ${params.APP_BRANCH} no está configurada para despliegue."
+                        }
+
+                        sh """
+                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no $EC2_USER@$ip '
+                            cd $REMOTE_PATH &&
+                            git pull origin ${params.APP_BRANCH} &&
+                            npm ci &&
+                            pm2 restart ${pm2_name} || pm2 start server.js --name ${pm2_name}
+                        '
+                        """
                     }
-
-                    env.APP_BRANCH = params.APP_BRANCH
-                    env.ip = ip
-
-                    sh '''
-                    #!/bin/bash
-                    ssh -i $SSH_KEY -o StrictHostKeyChecking=no $EC2_USER@$ip << 'ENDSSH'
-                    cd $REMOTE_PATH &&
-                    git pull origin ${APP_BRANCH} &&
-                    npm ci &&
-                    pm2 restart ${APP_BRANCH}-health || pm2 start server.js --name ${APP_BRANCH}-health
-                    ENDSSH
-                    '''
                 }
-
             }
-        }
+
     }
 }
