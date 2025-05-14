@@ -10,6 +10,10 @@ pipeline {
         REMOTE_PATH = '/home/ubuntu/node-healthcheck'
     }
 
+    parameters {
+        string(name: 'APP_BRANCH', defaultValue: 'main', description: 'Rama del microservicio')
+    }
+
     stages {
         stage('Detect Branch') {
             steps {
