@@ -8,7 +8,7 @@ pipeline {
         SSH_KEY = credentials('ssh-key-ec2')
         DEV_IP = '11.11.11.11'
         QA_IP  = '22.22.22.22'
-        PROD_IP = '33.33.33.33'
+        PROD_IP = '98.81.245.108'
         REMOTE_PATH = '/home/ubuntu/node-healthcheck'
     }
 
@@ -16,7 +16,7 @@ pipeline {
         stage('Checkout App Repo') {
             steps {
                 // Clona el repo real con el microservicio
-                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/tu-org/node-healthcheck.git'
+                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/roberto14118927/node-healthcheck.git'
             }
         }
 
