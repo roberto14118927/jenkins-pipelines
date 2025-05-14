@@ -10,14 +10,13 @@ pipeline {
         REMOTE_PATH = '/home/ubuntu/node-healthcheck'
     }
 
-    parameters {
-        string(name: 'APP_BRANCH', defaultValue: 'main', description: 'Rama del microservicio')
-    }
-
     stages {
-        stage('Checkout App Repo') {
+        stage('Detect Branch') {
             steps {
-                git branch: "${params.APP_BRANCH}", url: 'https://github.com/roberto14118927/node-healthcheck.git'
+                script {
+                    env.ACTUAL_BRANCH = env.BRANCH_NAME ?: 'main'
+                    echo "🔍 Rama activa: ${env.ACTUAL_BRANCH}"
+                }
             }
         }
 
