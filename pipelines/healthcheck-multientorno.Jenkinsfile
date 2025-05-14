@@ -1,8 +1,8 @@
 pipeline {
     agent any
 
-     tools {
-        nodejs 'NodeJS'  
+    tools {
+        nodejs 'NodeJS'  // Solo si alguna etapa futura lo requiere, puede omitirse aquí
     }
 
     environment {
@@ -14,81 +14,65 @@ pipeline {
         REMOTE_PATH = '/home/ubuntu/node-healthcheck'
     }
 
+    parameters {
+        string(name: 'APP_BRANCH', defaultValue: 'main', description: 'Rama del microservicio')
+    }
+
     stages {
         stage('Detect Branch') {
             steps {
                 script {
-                    env.ACTUAL_BRANCH = env.BRANCH_NAME ?: 'main'
+                    env.ACTUAL_BRANCH = params.APP_BRANCH ?: 'main'
                     echo "🔍 Rama activa: ${env.ACTUAL_BRANCH}"
                 }
             }
         }
 
-        stage('Build') {
+        stage('Deploy') {
             steps {
-                sh 'rm -rf node_modules'
-                sh 'npm install'
-            }
-        }
+                script {
+                    def ip = params.APP_BRANCH == 'develop' ? DEV_IP :
+                             params.APP_BRANCH == 'qa'      ? QA_IP :
+                             params.APP_BRANCH == 'main'    ? PROD_IP : null
 
-            stage('Deploy') {
-                steps {
-                    script {
-                        def ip = params.APP_BRANCH == 'develop' ? DEV_IP :
-                                params.APP_BRANCH == 'qa'      ? QA_IP :
-                                params.APP_BRANCH == 'main'    ? PROD_IP : null
+                    def pm2_name = "${params.APP_BRANCH}-health"
+                    def home_path = REMOTE_PATH
 
-                        def pm2_name = "${params.APP_BRANCH}-health"
-                        def home_path = REMOTE_PATH
-
-                        if (ip == null) {
-                            error "Branch ${params.APP_BRANCH} no está configurada para despliegue."
-                        }
-
-                         sh """
-                            ssh -i $SSH_KEY -o StrictHostKeyChecking=no $EC2_USER@$ip '
-
-                                echo "Actualizando sistema..."
-                                sudo apt-get update -y &&
-                                sudo apt-get upgrade -y
-
-                                echo "Verificando Node.js..."
-                                if ! command -v node > /dev/null; then
-                                    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-                                    sudo apt-get install -y nodejs
-                                fi
-
-                                echo "Verificando PM2..."
-                                if ! command -v pm2 > /dev/null; then
-                                    sudo npm install -g pm2
-                                fi
-
-                                echo "Verificando carpeta de app..."
-                                if [ ! -d "$home_path/.git" ]; then
-                                    git clone https://github.com/roberto14118927/node-healthcheck.git $home_path
-                                fi
-
-                                echo "Haciendo pull y deploy..."
-                                cd $home_path &&
-                                git pull origin ${params.APP_BRANCH} &&
-                                npm ci &&
-                                pm2 restart ${pm2_name} || pm2 start server.js --name ${pm2_name}
-                            '
-                            """
-
-                        // sh """
-                        // ssh -i $SSH_KEY -o StrictHostKeyChecking=no $EC2_USER@$ip '
-                        //     cd $REMOTE_PATH &&
-                        //     git pull origin ${params.APP_BRANCH} &&
-                        //     npm ci &&
-                        //     pm2 restart ${pm2_name} || pm2 start server.js --name ${pm2_name}
-                        // '
-                        // """
-
-                        
+                    if (ip == null) {
+                        error "Branch ${params.APP_BRANCH} no está configurada para despliegue."
                     }
+
+                    sh """
+                    ssh -i $SSH_KEY -o StrictHostKeyChecking=no $EC2_USER@$ip '
+                        echo "📦 Actualizando sistema..."
+                        sudo apt-get update -y &&
+                        sudo apt-get upgrade -y
+
+                        echo "📥 Verificando Node.js..."
+                        if ! command -v node > /dev/null; then
+                            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+                            sudo apt-get install -y nodejs
+                        fi
+
+                        echo "📥 Verificando PM2..."
+                        if ! command -v pm2 > /dev/null; then
+                            sudo npm install -g pm2
+                        fi
+
+                        echo "📁 Verificando carpeta de app..."
+                        if [ ! -d "$home_path/.git" ]; then
+                            git clone https://github.com/roberto14118927/node-healthcheck.git $home_path
+                        fi
+
+                        echo "🔁 Pull y deploy..."
+                        cd $home_path &&
+                        git pull origin ${params.APP_BRANCH} &&
+                        npm ci &&
+                        pm2 restart ${pm2_name} || pm2 start server.js --name ${pm2_name}
+                    '
+                    """
                 }
             }
-
+        }
     }
 }
