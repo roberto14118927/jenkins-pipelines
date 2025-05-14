@@ -1,9 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:20'
-        }
-    }
+    agent any
 
     environment {
         EC2_USER = 'ubuntu'
