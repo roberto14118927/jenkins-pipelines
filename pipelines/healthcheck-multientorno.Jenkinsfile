@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:20'
+        }
+    }
 
     environment {
         EC2_USER = 'ubuntu'
@@ -8,10 +12,6 @@ pipeline {
         QA_IP  = '22.22.22.22'
         PROD_IP = '98.81.245.108'
         REMOTE_PATH = '/home/ubuntu/node-healthcheck'
-    }
-
-    parameters {
-        string(name: 'APP_BRANCH', defaultValue: 'main', description: 'Rama del microservicio')
     }
 
     stages {
