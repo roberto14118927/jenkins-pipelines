@@ -45,27 +45,27 @@ pipeline {
                          sh """
                             ssh -i $SSH_KEY -o StrictHostKeyChecking=no $EC2_USER@$ip '
 
-                                echo "🔧 Actualizando sistema..."
+                                echo "Actualizando sistema..."
                                 sudo apt-get update -y &&
                                 sudo apt-get upgrade -y
 
-                                echo "📦 Verificando Node.js..."
+                                echo "Verificando Node.js..."
                                 if ! command -v node > /dev/null; then
                                     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
                                     sudo apt-get install -y nodejs
                                 fi
 
-                                echo "🚀 Verificando PM2..."
+                                echo "Verificando PM2..."
                                 if ! command -v pm2 > /dev/null; then
                                     sudo npm install -g pm2
                                 fi
 
-                                echo "📁 Verificando carpeta de app..."
+                                echo "Verificando carpeta de app..."
                                 if [ ! -d "$home_path/.git" ]; then
                                     git clone https://github.com/roberto14118927/node-healthcheck.git $home_path
                                 fi
 
-                                echo "📤 Haciendo pull y deploy..."
+                                echo "Haciendo pull y deploy..."
                                 cd $home_path &&
                                 git pull origin ${params.APP_BRANCH} &&
                                 npm ci &&
